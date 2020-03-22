@@ -1,0 +1,7 @@
+#!/bin/sh
+# album artist year
+for file in *.mp3; do
+    title=$(echo $file | awk '{n=split($0,a,"."); print a[1]}')
+    mid3v2 -A "$1" -a "$2" -y "$3" -t "$title" "$file"
+done;
+

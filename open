@@ -1,0 +1,21 @@
+#!/bin/bash
+
+file=$1
+extension=$(echo $file | awk '{n=split($0,a,"."); print a[n]}')
+
+if [ "$extension" = "pdf" ]; then
+    zathura "$file" &
+elif [ "$extension" = "mscz" ]; then
+    musescore "$file" &
+elif [ "$extension" = "png" ] || [ "$extension" = "jpg" ] || [ "$extension" = "jpeg" ]; then
+    feh "$file" &
+elif [ "$extension" = "mp3" ]; then
+    vlc "$file" &
+elif [ "$extension" = "odt" ] || [ "$extension" = "ods" ] || [ "$extension" = "odp" ] || [ "$extension" = "docx" ] || [ "$extension" = "xlsx" ] || [ "$extension" = "pptx" ]; then
+    libreoffice "$file" &
+elif [ -d $file  ]; then
+    cd "$file"
+    zsh
+else
+    vim "$file"
+fi

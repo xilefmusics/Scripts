@@ -1,0 +1,210 @@
+#!/bin/python
+
+import sys, getopt, re, os, datetime
+
+PATH_TO_CONTACTFILE = '/home/xilef/.xata/contacts'
+DILIMITER = ' '
+DILIMITER2 = '|'
+EMPTY_FIELD = '-'
+DEFUALT_FORMAT_STRING = '%f %l %m %n %b %t'
+DEFAULT_FILTER_STRING = '='
+DEFUALT_SELECT_STRING = '%f %l %m %n %b %t'
+DEFAULT_SORT_STRING = '%f'
+MULTIFIELD_DILIMITER = ' '
+
+def load(path):
+    with open(path, 'r') as file:
+        contacts = file.readlines()
+    for i in range(len(contacts)):
+        contacts[i] = contacts[i][:-1].split(DILIMITER)
+        for j in range(6):
+            if contacts[i][j] == EMPTY_FIELD:
+                contacts[i][j] = ''
+            if j in (2, 3, 5):
+                contacts[i][j] = contacts[i][j].split(DILIMITER2)
+    return contacts
+
+def parse_arguments(argv):
+    try:
+        opts, args = getopt.getopt(argv, 'f:F:s:S:e:d:y:')
+    except getopt.GetoptError:
+        help()
+        sys.exit(2)
+    args = {
+            'format_str': DEFUALT_FORMAT_STRING,
+            'filter_str': None,
+            'select_str': None,
+            'sort_str': None,
+            'expand_str': None,
+            'multifield_delimiter': MULTIFIELD_DILIMITER,
+            'year': None,
+            }
+    for opt, arg in opts:
+        if opt == '-f':
+            args['format_str'] = arg if arg else DEFUALT_FORMAT_STRING
+        elif opt == '-F':
+            args['filter_str'] = arg if arg else DEFAULT_FILTER_STRING
+        elif opt == '-s':
+            args['select_str'] = arg if arg else DEFUALT_SELECT_STRING
+        elif opt == '-S':
+                args['sort_str'] = arg if arg else DEFAULT_SORT_STRING
+        elif opt == '-d':
+            args['multifield_delimiter'] = arg if arg else MULTIFIELD_DILIMITER
+        elif opt == '-e':
+            args['expand_str'] = arg if arg else None
+        elif opt == '-y':
+            args['year'] = arg if arg else None
+    return args
+
+def format_multifield(multifield, delimiter=MULTIFIELD_DILIMITER):
+    result = multifield[0]
+    for field in multifield[1:]:
+        result += delimiter + field
+    return result
+
+
+def format_contact(contact, format_str=DEFUALT_FORMAT_STRING, multifield_delimiter=MULTIFIELD_DILIMITER):
+    format_str = format_str.replace('%f', contact[0])
+    format_str = format_str.replace('%l', contact[1])
+    format_str = format_str.replace('%N', contact[2][0])
+    format_str = format_str.replace('%n', format_multifield(contact[2], multifield_delimiter))
+    format_str = format_str.replace('%M', contact[3][0])
+    format_str = format_str.replace('%m', format_multifield(contact[3], multifield_delimiter))
+    format_str = format_str.replace('%b', contact[4])
+    format_str = format_str.replace('%T', contact[5][0])
+    format_str = format_str.replace('%t', format_multifield(contact[5], multifield_delimiter))
+    return str(format_str)
+
+def filter_contacts(contacts, filter_str=DEFAULT_FILTER_STRING):
+    left, right = filter_str.split('=')
+    regex = re.compile(right)
+    i = 0
+    while (i < len(contacts)):
+        if not regex.match(format_contact(contacts[i], left)):
+            contacts.remove(contacts[i])
+        else:
+            i += 1
+    return contacts
+
+def sort_contacts(contacts, sort_str=DEFAULT_SORT_STRING):
+    return [x for _,x in sorted(zip([format_contact(contact, sort_str) for contact in contacts], contacts))]
+
+def select_contact(contacts, select_str=DEFUALT_SELECT_STRING):
+    fzf_string = ''
+    contact_id = 0
+    for contact in contacts:
+        fzf_string += str(contact_id) + ":\t" +format_contact(contact, select_str) + '\n'
+        contact_id += 1
+    fzf_string = fzf_string[:-1]
+    result = os.popen('echo "' + fzf_string + '" | fzf', 'r').read()
+    contact_id = int(result.split(':')[0])
+    return [contacts[contact_id]]
+
+def expand_contacts(contacts, expand_str):
+    expand_index = None
+    if expand_str in ('n', '%n', 'number', 'numbers', 'N', '%N'):
+        expand_index = 2
+    elif expand_str in ('m', '%m', 'mail', 'mails', 'M', '%M'):
+        expand_index = 3
+    elif expand_str in ('t', '%t', 'tag', 'tags', 'T', '%T'):
+        expand_index = 5
+    else:
+        return contacts
+    new_contacts = []
+    for contact in contacts:
+        for field in contact[expand_index]:
+            new_contact = contact[:]
+            new_contact[expand_index] = [field]
+            new_contacts.append(new_contact)
+    return new_contacts
+
+def ics_birthday_export(contacts, year):
+    year = year if year else datetime.date.today().year
+    text = 'BEGIN:VCALENDAR\nPRODID:concli\nVERSION:2.0\n'
+    for contact in contacts:
+        if len(contact[4]) > 0:
+            d, m, y = contact[4].split('.')
+            if len(y) == 4 and not y == '0000':
+                x = int(year) - int(y)
+                summary = format_contact(contact, '%f %l wird {} Jahre alt'.format(x))
+            else:
+                summary = format_contact(contact, '%f %l hat Geburtstag')
+            text += 'BEGIN:VEVENT\nDTSTART;VALUE=DATE:{}{}{}\nSUMMARY:{}\nEND:VEVENT\n'.format(year, m, d, summary)
+    text += 'END:VCALENDAR'
+    print(text)
+
+
+def help():
+    print('USAGE:')
+    print('\tconcli <FUNCTION> [PARAMS]')
+    print('\nFUNCIONS:')
+    print('\thelp\t\t\t\tshows this page')
+    print('\tlist\t\t\t\tlist of contacts')
+    print('\tics-birthday-export\texports birthdays as appointments in iCalendar format')
+    print('\nPARAMS:')
+    print('\t-f [RSTRING]\t\tformat contacts')
+    print('\t-F [RSTRING=REGEX]\tfilter contacts')
+    print('\t-s [RSTRING]\t\tselect contact (interactive using fzf)')
+    print('\t-S [RSTRING]\t\tsort contacts')
+    print('\t-d [STRING]\t\t\tdelimiter of multifields')
+    print('\t-e [n|m|t]\t\t\texpand contacts with multiple numbers, mails, or tags')
+    print('\t-y [YEAR]\t\t\tspezifys the year for ics-birthday-export')
+    print('\nREPLACEMENT IN RSTRINGS:')
+    print('\t%s\t\t\t\t\tfirstname')
+    print('\t%l\t\t\t\t\tlastname')
+    print('\t%n\t\t\t\t\tnumber[s]')
+    print('\t%N\t\t\t\t\tfirst number')
+    print('\t%m\t\t\t\t\tmail[s]')
+    print('\t%M\t\t\t\t\tfirst mail')
+    print('\t%b\t\t\t\t\tbirthday')
+    print('\t%t\t\t\t\t\ttag[s]')
+    print('\t%T\t\t\t\t\tfirst tag')
+    print('\nSHORTCUTS:')
+    print('\tconcli mail\t\t\tconcli list -f \'%M\' -s \'%f %l %M\' -e \'%M\'')
+
+def main():
+    if len(sys.argv) == 1:
+        help()
+        sys.exit(2)
+
+    func = sys.argv[1]
+    if func == 'help':
+        help()
+        return
+    elif func == 'mail':
+        args = {
+            'format_str': '%M',
+            'filter_str': None,
+            'select_str': '%f %l %M',
+            'sort_str': None,
+            'expand_str': '%M',
+            'multifield_delimiter': MULTIFIELD_DILIMITER,
+            'year': None,
+            }
+        func = 'list'
+    else:
+        args = parse_arguments(sys.argv[2:])
+
+    contacts_raw = load(PATH_TO_CONTACTFILE)
+    contacts = contacts_raw[:]
+
+    if args['filter_str']:
+        contacts = filter_contacts(contacts, args['filter_str'])
+
+    if args['sort_str']:
+        contacts = sort_contacts(contacts, args['sort_str'])
+
+    if args['expand_str']:
+        contacts = expand_contacts(contacts, args['expand_str'])
+
+    if args['select_str']:
+        contacts = select_contact(contacts, args['select_str'])
+
+    if func == 'list':
+        for contact in contacts:
+            print(format_contact(contact, args['format_str'], args['multifield_delimiter']))
+    elif func == 'ics-birthday-export':
+        ics_birthday_export(contacts, args['year'])
+
+if __name__ == '__main__':
+    main()
