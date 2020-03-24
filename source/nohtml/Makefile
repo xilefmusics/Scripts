@@ -1,0 +1,11 @@
+nohtml: nohtml.c html_entity.h
+	cc -o nohtml nohtml.c
+
+run: nohtml
+	./nohtml
+
+install: nohtml
+	cp nohtml ../../bin/nohtml
+
+clean:
+	rm nohtml

@@ -133,6 +133,19 @@ def ics_birthday_export(contacts, year):
     text += 'END:VCALENDAR'
     print(text)
 
+def mutt(input):
+    result = ''
+    contacts = load(PATH_TO_CONTACTFILE)
+    for contact in contacts:
+        if contact[0].find(input) != -1 or contact[1].find(input) != -1:
+            for mail in contact[3]:
+                result += '\n' + mail + '\t' + contact[0] + ' ' + contact[1]
+        else:
+            for mail in contact[3]:
+                if mail.find(input) != -1:
+                    result += '\n' + mail + '\t' + contact[0] + ' ' + contact[1]
+    return result
+
 
 def help():
     print('USAGE:')
@@ -140,6 +153,7 @@ def help():
     print('\nFUNCIONS:')
     print('\thelp\t\t\t\tshows this page')
     print('\tlist\t\t\t\tlist of contacts')
+    print('\tmutt\t\t\t\tquery called from mutt')
     print('\tics-birthday-export\texports birthdays as appointments in iCalendar format')
     print('\nPARAMS:')
     print('\t-f [RSTRING]\t\tformat contacts')
@@ -182,6 +196,9 @@ def main():
             'year': None,
             }
         func = 'list'
+    elif func == 'mutt':
+        print(mutt(sys.argv[2]))
+        return
     else:
         args = parse_arguments(sys.argv[2:])
 
