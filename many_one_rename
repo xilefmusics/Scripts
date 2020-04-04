@@ -1,7 +1,0 @@
-#!/bin/sh
-i=1
-for file in *; do
-    mv $file $1_$i.$2
-    let "i+=1"
-done
-
