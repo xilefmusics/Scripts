@@ -1,0 +1,140 @@
+#!/usr/bin/python
+import os
+
+def getMonitors():
+	monitors = os.popen("xrandr -q | grep ' connected'").readlines()
+	for i in range(len(monitors)):
+		monitors[i] = monitors[i].split(" ")[0]
+	return monitors
+
+def getAllMonitors():
+	monitors = os.popen("xrandr -q | grep 'connected'").readlines()
+	for i in range(len(monitors)):
+		monitors[i] = monitors[i].split(" ")[0]
+	return monitors
+
+def chooseMonitor(monitor):
+	otherMonitors = getAllMonitors()
+	otherMonitors.remove(monitor)
+
+	s = "xrandr --output " + monitor + " --auto --scale 1.0x1.0 "
+	for o in otherMonitors:
+		s += "--output " + o + " --off "
+
+	os.system(s)
+
+def getResolutions(monitors):
+	data = os.popen("xrandr -q").readlines()
+	yes = os.popen("xrandr -q | grep ' connected'").readlines()
+	no = os.popen("xrandr -q | grep ' disconnected'").readlines()
+
+
+	for line in no:
+		data.remove(line)
+
+	monitors.reverse()
+	result = []
+	resolutions = []
+	monitor = ''
+	for line in data:
+		if line in yes:
+			if not monitor == '':
+				result.append((monitor, resolutions))
+			resolutions = []
+			monitor = monitors.pop()
+		else:
+			resolutions.append(line.split(" ")[3])
+	result.append((monitor, resolutions))
+	return result
+
+def duplicateMonitors(monitors):
+	otherMonitors = getAllMonitors()
+
+	# select monitors
+	nextNames = ['Fourth:', 'Third:', 'Second:', 'Primary:']
+	duplicateMonitors = []
+	nextMonitor = True
+	monitors.append('None')
+	while (not nextMonitor == 'None') and len(monitors) > 1:
+		nextMonitor = select(monitors, nextNames.pop())
+		if not nextMonitor == 'None':
+			monitors.remove(nextMonitor)
+			otherMonitors.remove(nextMonitor)
+			duplicateMonitors.append(nextMonitor)
+
+	# build command
+	command = "xrandr --output " + duplicateMonitors[0] + " --auto --scale 1.0x1.0"
+	for monitor in duplicateMonitors[1:]:
+		command += " --output " + monitor + " --auto --same-as " + duplicateMonitors[0] + " --scale 1.0x1.0"
+	for monitor in otherMonitors:
+		command += " --output " + monitor + " --off "
+
+	os.system(command)
+
+
+def extendMonitors(monitors):
+	otherMonitors = getAllMonitors()
+
+	# select primary
+	primary = select(monitors, 'Primary:')
+	monitors.remove(primary)
+	otherMonitors.remove(primary)
+
+	nextNames = ['Fourth:', 'Third:', 'Second:']
+	# select extendeds
+	extendedMonitors = []
+	nextMonitor = True
+	monitors.append('None')
+	while (not nextMonitor == 'None') and len(monitors) > 1:
+		nextMonitor = select(monitors, nextNames.pop())
+		if not nextMonitor == 'None':
+			monitors.remove(nextMonitor)
+			otherMonitors.remove(nextMonitor)
+			orientation = select(['left-of', 'above', 'right-of', 'below'], 'Orientation:')
+			extendedMonitors.append((nextMonitor, orientation))
+
+	# build Command
+	command = "xrandr --output " + primary + " --auto --scale 1.0x1.0"
+	for monitor in extendedMonitors:
+		command += " --output " + monitor[0] + " --" + monitor[1] + " " + primary + " --auto --scale 1.0x1.0"
+	for monitor in otherMonitors:
+		command += " --output " + monitor + " --off "
+
+	os.system(command)
+
+def select(monitors, message=False):
+	choices = ""
+	for m in monitors:
+		choices += m + "\n"
+	choices = choices[:-1]
+	if message:
+		return os.popen("echo -e '" + choices +"' |dmenu -i -p '" +message + "'").read()[:-1]
+	else:
+		return os.popen("echo -e '" + choices +"' |dmenu").read()[:-1]
+
+def showMonitorChooser():
+	monitors = getMonitors()
+	choices = ""
+	for m in monitors:
+		choices += m + "\n"
+	choices += "duplicate\nextend\nmanual"
+
+	choosen = os.popen("echo -e '" + choices +"' |dmenu").read()[:-1]
+
+	if choosen == 'duplicate':
+		duplicateMonitors(monitors)
+	elif choosen == 'extend':
+		extendMonitors(monitors)
+	elif choosen == 'manual':
+		os.system('arandr')
+		return
+	for m in monitors:
+		if choosen == m:
+			chooseMonitor(m)
+			return
+
+def main():
+    showMonitorChooser()
+
+if __name__ == "__main__":
+    main()
