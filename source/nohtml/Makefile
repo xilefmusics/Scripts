@@ -8,4 +8,4 @@ install: nohtml
 	cp nohtml ../../bin/nohtml
 
 clean:
-	rm nohtml
+	rm -f nohtml
