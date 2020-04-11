@@ -1,4 +1,4 @@
-nohtml: nohtml.c html_entity.h
+nohtml: nohtml.c ../include/html_entity.h
 	cc -o nohtml nohtml.c
 
 run: nohtml

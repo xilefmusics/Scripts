@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "html_entity.h"
+#include "../include/html_entity.h"
 
 int main(int argc, char *argv[]) {
     char c;

@@ -1,4 +1,4 @@
-cptt: cptt.c
+cptt: cptt.c ../include/16color.h
 	cc -o cptt cptt.c
 
 clean:

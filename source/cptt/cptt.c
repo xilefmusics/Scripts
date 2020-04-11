@@ -3,11 +3,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include "../include/16color.h"
+
 #define BUFFER_LENGTH 512
-#define CTEXT "\x1b[37m"
-#define CCHORD "\x1b[37;1m"
-#define CSECTION "\x1b[37m"
- #define CRESET "\x1b[0m"
 char *chords[2][12] = {
     {"A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"},
     {"A", "Bb", "Cb", "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab"}
@@ -87,7 +85,7 @@ char parse_chord_level(FILE *in, char c, int *level, int *line) {
 }
 
 
-void parse_to_plaintext(FILE *in, FILE *out, int transpose, chordp_t chordp, bool show_chords, bool show_sections, bool colors, char *prefix) {
+void parse_to_plaintext(FILE *in, FILE *out, int transpose, chordp_t chordp, bool show_chords, bool show_sections, bool colors, char *prefix, int text_color, int chord_color, int section_color) {
     char c;
     int line_index = 1;
     char text_buffer[BUFFER_LENGTH];
@@ -119,7 +117,7 @@ void parse_to_plaintext(FILE *in, FILE *out, int transpose, chordp_t chordp, boo
                         printf("\n");
                     }
                     if (colors) {
-                        fprintf(out, CSECTION "%s\n" CRESET, directive_buffer);
+                        fprintf(out, "%s%s%s\n", CCOLORS[section_color], directive_buffer, CRESET);
                     } else {
                         fprintf(out, "%s\n", directive_buffer);
                     }
@@ -142,7 +140,7 @@ void parse_to_plaintext(FILE *in, FILE *out, int transpose, chordp_t chordp, boo
                 if (show_chords && chord_index > 0) {
                     chord_buffer[chord_index] = '\0';
                     if (colors) {
-                        fprintf(out, CCHORD "%s%s\n" CRESET, prefix, chord_buffer);
+                        fprintf(out, "%s%s%s\n", CCOLORS[chord_color], chord_buffer, CRESET);
                     } else {
                         fprintf(out, "%s%s\n", prefix, chord_buffer);
                     }
@@ -151,7 +149,7 @@ void parse_to_plaintext(FILE *in, FILE *out, int transpose, chordp_t chordp, boo
                 if (text_index > 0) {
                     text_buffer[text_index] = '\0';
                     if (colors) {
-                        fprintf(out, CTEXT "%s%s\n" CRESET, prefix, text_buffer);
+                        fprintf(out, "%s%s%s\n", CCOLORS[text_color], text_buffer, CRESET);
                     } else {
                         fprintf(out, "%s%s\n", prefix, text_buffer);
                     }
@@ -225,13 +223,11 @@ int main(int argc, char *argv[]) {
     FILE *in = stdin, *out = stdout;
     chordp_t chordp = DYNAMIC;
     char *prefix ="  ";
-    int transpose = 0, capo = 0, inindex = 0, outindex = 0;
+    int transpose = 0, capo = 0, inindex = 0, outindex = 0, text_color = 7, chord_color = 7, section_color = 7;
     bool show_chords = true, show_sections = true, colors = false;
     // parse Arguments
     for (int i = 1; i < argc; ++i) {
-        if (!strcmp(argv[i], "-C")) {
-            colors = true;
-        } else if (!strcmp(argv[i], "-nc")) {
+        if (!strcmp(argv[i], "-nc")) {
             show_chords = false;
         } else if (!strcmp(argv[i], "-ns")) {
             show_sections = false;
@@ -268,6 +264,32 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "-cp needs argument (flat or sharp)\n");
                 exit(EXIT_FAILURE);
             }
+        } else if (!strcmp(argv[i], "-Ct")) {
+            if (i+1 >= argc) {
+                fprintf(stderr, "-c needs argument <INTEGER>\n");
+                exit(EXIT_FAILURE);
+            }
+            text_color = atoi(argv[++i]);
+            text_color = 0 <= text_color && text_color < 16 ? text_color: 7;
+            colors = true;
+        } else if (!strcmp(argv[i], "-Cc")) {
+            colors = true;
+            if (i+1 >= argc) {
+                fprintf(stderr, "-c needs argument <INTEGER>\n");
+                exit(EXIT_FAILURE);
+            }
+            chord_color = atoi(argv[++i]);
+            chord_color = 0 <= chord_color && chord_color < 16 ? chord_color: 7;
+            colors = true;
+        } else if (!strcmp(argv[i], "-Cs")) {
+            colors = true;
+            if (i+1 >= argc) {
+                fprintf(stderr, "-c needs argument <INTEGER>\n");
+                exit(EXIT_FAILURE);
+            }
+            section_color = atoi(argv[++i]);
+            section_color = 0 <= section_color && section_color < 16 ? section_color: 7;
+            colors = true;
         } else {
             inindex = i;
         }
@@ -288,7 +310,7 @@ int main(int argc, char *argv[]) {
     }
 
     // parse
-    parse_to_plaintext(in, out, transpose-capo, chordp, show_chords, show_sections, colors, prefix);
+    parse_to_plaintext(in, out, transpose-capo, chordp, show_chords, show_sections, colors, prefix, text_color, chord_color, section_color);
 
     // close files
     if (inindex) {
