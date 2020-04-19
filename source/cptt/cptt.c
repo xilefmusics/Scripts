@@ -140,7 +140,7 @@ void parse_to_plaintext(FILE *in, FILE *out, int transpose, chordp_t chordp, boo
                 if (show_chords && chord_index > 0) {
                     chord_buffer[chord_index] = '\0';
                     if (colors) {
-                        fprintf(out, "%s%s%s\n", CCOLORS[chord_color], chord_buffer, CRESET);
+                        fprintf(out, "%s%s%s%s\n", CCOLORS[chord_color], prefix, chord_buffer, CRESET);
                     } else {
                         fprintf(out, "%s%s\n", prefix, chord_buffer);
                     }
@@ -149,7 +149,7 @@ void parse_to_plaintext(FILE *in, FILE *out, int transpose, chordp_t chordp, boo
                 if (text_index > 0) {
                     text_buffer[text_index] = '\0';
                     if (colors) {
-                        fprintf(out, "%s%s%s\n", CCOLORS[text_color], text_buffer, CRESET);
+                        fprintf(out, "%s%s%s%s\n", CCOLORS[text_color], prefix, text_buffer, CRESET);
                     } else {
                         fprintf(out, "%s%s\n", prefix, text_buffer);
                     }

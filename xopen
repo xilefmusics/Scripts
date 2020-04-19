@@ -7,7 +7,7 @@ if [ "$extension" = "pdf" ]; then
     zathura "$file" &
 elif [ "$extension" = "mscz" ]; then
     musescore "$file" &
-elif [ "$extension" = "png" ] || [ "$extension" = "jpg" ] || [ "$extension" = "jpeg" ]; then
+elif [ "$extension" = "png" ] || [ "$extension" = "jpg" ] || [ "$extension" = "jpeg" ] || [ "$extension" = "ppm" ] || [ "$extension" = "pgm" ]; then
     feh "$file" &
 elif [ "$extension" = "mp3" ]; then
     vlc "$file" &
