@@ -1,0 +1,25 @@
+#!/bin/python
+import sys, os
+
+EDITOR = '$EDITOR'
+PATH_TO_TEMP = 'temp.txt'
+
+filenames = sys.argv[1:]
+with open(PATH_TO_TEMP, 'w') as temp:
+    for filename in filenames:
+        temp.write(filename + '\n')
+
+os.system(EDITOR + ' "' + PATH_TO_TEMP + '"')
+
+new_filenames = []
+with open(PATH_TO_TEMP, 'r') as temp:
+    new_filenames = temp.readlines()
+
+if not len(filenames) == len(new_filenames):
+    print('Ups, somethong went wrong')
+    sys.exit(1)
+
+for i in range(len(filenames)):
+    os.system('mv "' + filenames[i] + '" "' + new_filenames[i][:-1] + '"')
+
+os.system('rm "' + PATH_TO_TEMP + '"')
