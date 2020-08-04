@@ -1,0 +1,9 @@
+interface="enp0s25"
+nameserver="8.8.8.8"
+gateway="192.168.69.1"
+myip="192.168.69.2/24"
+
+ip addr add $myip dev $interface
+ip link set up $interface
+ip route add default via $gateway dev $interface
+echo "nameserver $nameserver" > /etc/resolv.conf
