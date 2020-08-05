@@ -4,6 +4,7 @@ all:
 	cd xib && make
 	cd xifi && make
 	cd wttcp && make
+	cd xns && make
 
 install:
 	cd nohtml && make install
@@ -11,6 +12,7 @@ install:
 	cd xib && make install
 	cd xifi && make install
 	cd wttcp && make install
+	cd xns && make install
 
 clean:
 	cd nohtml && make clean
@@ -18,3 +20,4 @@ clean:
 	cd xib && make clean
 	cd xifi && make clean
 	cd wttcp && make clean
+	cd xns && make clean
