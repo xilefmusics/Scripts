@@ -13,6 +13,19 @@ void dnslib_parse_flags(uint16_t raw, dns_flags_t* flags) {
   flags->rcode = (uint8_t)(0x000F & raw);
 }
 
+uint16_t dnslib_backparse_flags(dns_flags_t* flags) {
+  uint16_t raw = 0;
+  raw |= (((uint16_t)(flags->qr & 0x01))<<15);
+  raw |= (((uint16_t)(flags->opcode & 0x0F))<<11);
+  raw |= (((uint16_t)(flags->aa & 0x01))<<10);
+  raw |= (((uint16_t)(flags->tc & 0x01))<<9);
+  raw |= (((uint16_t)(flags->rd & 0x01))<<8);
+  raw |= (((uint16_t)(flags->ra & 0x01))<<7);
+  raw |= (((uint16_t)(flags->z & 0x07))<<4);
+  raw |= (((uint16_t)(flags->rcode & 0x0F)));
+  return raw;
+}
+
 void dnslib_parse_request(char *buf, dns_header_t *dns_header, dns_body_t *dns_body) {
   char *buf_ptr, *domain_ptr;
   // parse dns_header into (dns_header)
