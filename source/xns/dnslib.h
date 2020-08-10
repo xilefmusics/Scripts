@@ -6,7 +6,7 @@
 
 #define A 0x0001
 #define NS 0x0002
-#define MX 0x000f
+#define MX 0x000F
 
 #define RCODE_NO_ERROR 0
 #define RCODE_FORMAT_ERROR 1 // unable to parse query
