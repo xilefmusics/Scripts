@@ -5,6 +5,10 @@ all:
 	cd xifi && make
 	cd wttcp && make
 	cd xns && make
+	cd tts && make
+	cd ttc && make
+	cd uts && make
+	cd utc && make
 
 install:
 	cd nohtml && make install
@@ -13,6 +17,10 @@ install:
 	cd xifi && make install
 	cd wttcp && make install
 	cd xns && make install
+	cd tts && make install
+	cd ttc && make install
+	cd uts && make install
+	cd utc && make install
 
 clean:
 	cd nohtml && make clean
@@ -21,3 +29,7 @@ clean:
 	cd xifi && make clean
 	cd wttcp && make clean
 	cd xns && make clean
+	cd tts && make clean
+	cd ttc && make clean
+	cd uts && make clean
+	cd utc && make clean
