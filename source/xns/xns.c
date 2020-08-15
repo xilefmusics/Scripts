@@ -13,12 +13,12 @@
 
 typedef struct recordA {
   char *domain;
-  uint32_t ipv4;
+  char *ipv4;
   uint16_t ttl;
 } recordA_t;
 
 recordA_t recordsA[] = {
-  {"me.intern", 0x7F000001, 3600}
+  {"me.intern", "127.0.0.1", 3600}
 };
 int num_recordsA = 1;
 
@@ -40,7 +40,7 @@ char *parse_domain(char *buf_ptr) {
 int lookupA(char *domain, uint32_t *ipv4, uint16_t *ttl) {
   for (int i = 0; i < num_recordsA; ++i) {
     if (!strcmp(recordsA[i].domain, domain)) {
-      *ipv4 = recordsA[i].ipv4;
+      *ipv4 = atoipv4(recordsA[i].ipv4);
       *ttl = recordsA[i].ttl;
       return 0;
     }

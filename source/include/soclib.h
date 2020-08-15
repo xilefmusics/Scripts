@@ -90,11 +90,11 @@ int udp_server(uint16_t port, char* in_buf, int in_buf_len, int (*handler)(char 
   struct sockaddr_in si_me, si_other;
   int s, len, slen = sizeof(si_other);
   char *out_buf;
-	if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+  if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     return -1;
-	si_me.sin_family = AF_INET; // IPv4
-	si_me.sin_addr.s_addr = htonl(INADDR_ANY); // Ip-Adresse
-	si_me.sin_port = htons(port); // Port
+  si_me.sin_family = AF_INET; // IPv4
+  si_me.sin_addr.s_addr = htonl(INADDR_ANY); // Ip-Adresse
+  si_me.sin_port = htons(port); // Port
   if(bind(s, (struct sockaddr*)&si_me, sizeof(si_me)) == -1)
     return -2;
   while (1) {
@@ -102,12 +102,12 @@ int udp_server(uint16_t port, char* in_buf, int in_buf_len, int (*handler)(char 
       return -3;
     out_buf = NULL;
     len = handler(in_buf, &out_buf, len);
-      if (!out_buf)
-        out_buf = in_buf;
-      if (!len)
-        continue;
-      if (len < 0)
-        break;
+    if (!out_buf)
+      out_buf = in_buf;
+    if (!len)
+      continue;
+    if (len < 0)
+      break;
     if (sendto(s, out_buf, len, 0, (struct sockaddr*) &si_other, slen) == -1)
       return -4;
   }
@@ -135,9 +135,9 @@ int udp_server(uint16_t port, char* in_buf, int in_buf_len, int (*handler)(char 
 int udp_request(int socket, uint16_t port, uint32_t ipv4, char* out_buf, int out_len, char* in_buf, int in_buf_len) {
   struct sockaddr_in server_addr;
   int in_len, slen = sizeof(server_addr);
-	server_addr.sin_family = AF_INET; // IPv4
-	server_addr.sin_addr.s_addr = htonl(ipv4); // Ip-Adresse
-	server_addr.sin_port = htons(port); // Port
+  server_addr.sin_family = AF_INET; // IPv4
+  server_addr.sin_addr.s_addr = htonl(ipv4); // Ip-Adresse
+  server_addr.sin_port = htons(port); // Port
   if (sendto(socket, out_buf, out_len, MSG_CONFIRM, (struct sockaddr*) &server_addr, slen) == -1)
     return -4;
   if ((in_len = recvfrom(socket, in_buf, in_buf_len, MSG_WAITALL, (struct sockaddr *) &server_addr, &slen)) == -1)
@@ -166,7 +166,7 @@ int udp_request(int socket, uint16_t port, uint32_t ipv4, char* out_buf, int out
  * handler function:
  *  arguments:
  *    - char *in_buffer: buffer with request
- *    - char **out_buffer: always NULL, can be set to an buffer with the response,
+ *    - char **out_buffers (16): always NULL, can be set to an buffer with the response,
  *      if not in buffer will be sent back
  *    - int in_len: length of request
  *  returns:
@@ -175,37 +175,42 @@ int udp_request(int socket, uint16_t port, uint32_t ipv4, char* out_buf, int out
  *    <0: server will be terminated
  *
  */
-int tcp_server(uint16_t port, char* in_buf, int in_buf_len, int (*handler)(char *in_buf, char **out_buf, int in_len), int len_queue) {
-	struct sockaddr_in si_me, si_other;
+int tcp_server(uint16_t port, char* in_buf, int in_buf_len, int (*handler)(char *in_buf, char **out_bufs, int in_len), int len_queue) {
+  struct sockaddr_in si_me, si_other;
   int s, c, len, slen = sizeof(si_other);
-  char *out_buf;
+  char *out_bufs[16];
   if ((s = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     return -1;
-	si_me.sin_family = AF_INET; // IPv4
-	si_me.sin_addr.s_addr = INADDR_ANY; // Ip-Adresse
-	si_me.sin_port = htons(port); // Port
-	if (bind(s, (struct sockaddr *) &si_me, sizeof(si_me)) == -1)
+  si_me.sin_family = AF_INET; // IPv4
+  si_me.sin_addr.s_addr = INADDR_ANY; // Ip-Adresse
+  si_me.sin_port = htons(port); // Port
+  if (bind(s, (struct sockaddr *) &si_me, sizeof(si_me)) == -1)
     return -2;
-	if ((listen(s, len_queue) == -1))
-      return -5;
-	while (1) {
+  if ((listen(s, len_queue) == -1))
+    return -5;
+  while (1) {
     if ((c = accept(s, (struct sockaddr *) &si_other, &slen)) == -1)
       return -3;
-		if ((len = recv(c, in_buf, in_buf_len, 0)) == -1)
+    if ((len = recv(c, in_buf, in_buf_len, 0)) == -1)
       return -6;
-    out_buf = NULL;
-    len = handler(in_buf, &out_buf, len);
-      if (!out_buf)
-        out_buf = in_buf;
-      if (!len)
-        continue;
-      if (len < 0)
+    for (int i = 0; i < 16; ++i)
+      out_bufs[i] = NULL;
+    len = handler(in_buf, out_bufs, len);
+    if (!out_bufs[0])
+      out_bufs[0] = in_buf;
+    if (!len)
+      continue;
+    if (len < 0)
+      break;
+    for (int i = 0; i < 16; ++i) {
+      if (!out_bufs[i])
         break;
-		if ((send(c, out_buf, len, 0)) == -1)
-      return -4;
-		close(c);
+      if ((send(c, out_bufs[i], len, 0)) == -1)
+        return -4;
+    }
+    close(c);
   }
-	close(s);
+  close(s);
   return 0;
 }
 
@@ -230,14 +235,14 @@ int tcp_server(uint16_t port, char* in_buf, int in_buf_len, int (*handler)(char 
 int tcp_request(int socket, uint16_t port, uint32_t ipv4, char* out_buf, int out_len, char* in_buf, int in_buf_len) {
   struct sockaddr_in server_addr;
   int c, in_len, slen = sizeof(server_addr);
-	server_addr.sin_family = AF_INET; // IPv4
-	server_addr.sin_addr.s_addr = htonl(ipv4); // Ip-Adresse
-	server_addr.sin_port = htons(port); // Port
-	if (connect(socket, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1)
+  server_addr.sin_family = AF_INET; // IPv4
+  server_addr.sin_addr.s_addr = htonl(ipv4); // Ip-Adresse
+  server_addr.sin_port = htons(port); // Port
+  if (connect(socket, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1)
     return -7;
-	if(send(socket, out_buf, out_len, 0) == -1)
+  if(send(socket, out_buf, out_len, 0) == -1)
     return -4;
-	if ((in_len = recv(socket, in_buf, in_buf_len, 0)) == -1)
+  if ((in_len = recv(socket, in_buf, in_buf_len, 0)) == -1)
     return -3;
   return in_len;
 }
