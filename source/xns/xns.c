@@ -11,13 +11,11 @@
 #define CLASS_IN 1
 #define RECORD_A 1
 
-typedef struct recordA {
+struct recordA {
   char *domain;
   char *ipv4;
   uint16_t ttl;
-} recordA_t;
-
-recordA_t recordsA[] = {
+} recordsA[] = {
   {"me.intern", "127.0.0.1", 3600}
 };
 int num_recordsA = 1;
@@ -48,12 +46,23 @@ int lookupA(char *domain, uint32_t *ipv4, uint16_t *ttl) {
   return 1;
 }
 
+char tmp_buf[BUFLEN];
+int forward(char *in_buf, int in_len) {
+    int len = udp_request(forward_socket, 53, FORWARD, in_buf, in_len, tmp_buf, BUFLEN);
+    if (len > 0) {
+      memcpy(in_buf, tmp_buf, len);
+      return len;
+    }
+    write_uint16(in_buf+2,  0x8182);      // FLAGS (Server Failure)
+    return in_len;
+}
+
 int dns_handler(char *in_buf, char **out_buf, int in_len) {
   // check qcount and forward, if not 1
   uint16_t qcount;
   read_uint16(in_buf+4, &qcount);
   if (qcount != 1)
-    return udp_request(forward_socket, 53, FORWARD, in_buf, in_len, in_buf, BUFLEN);
+    return forward(in_buf, in_len);
 
   // parse question and forward if not CLASS_IN and RECORD_A
   char *ptr = in_buf+12;
@@ -62,13 +71,13 @@ int dns_handler(char *in_buf, char **out_buf, int in_len) {
   ptr = read_uint16(ptr, &type);        // read type (A)
   ptr = read_uint16(ptr, &class);       // read class (IN)
   if (class != CLASS_IN || type != RECORD_A)
-    return udp_request(forward_socket, 53, FORWARD, in_buf, in_len, in_buf, BUFLEN);
+    return forward(in_buf, in_len);
 
   // lookup and forward if not found in database
   uint32_t ipv4;
   uint16_t ttl;
   if (lookupA(domain, &ipv4, &ttl))
-    return udp_request(forward_socket, 53, FORWARD, in_buf, in_len, in_buf, BUFLEN);
+    return forward(in_buf, in_len);
 
   // write answer body
   ptr = write_uint16(ptr, 0xc00c);      // write pointer/offset (c|00c)
@@ -93,6 +102,11 @@ int main(int argc, char *argv[]) {
   char buf[BUFLEN];
 	if ((forward_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     return -1;
+  struct timeval tv;
+  tv.tv_sec = 0;
+  tv.tv_usec = 100000;
+  if (setsockopt(forward_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
+    return 1;
   return udp_server(PORT, buf, BUFLEN, dns_handler);
   close(forward_socket);
 }
