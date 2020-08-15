@@ -1,3 +1,6 @@
+#ifndef HTML_ENTITY
+#define HTML_ENTITY
+
 static const struct {
     const char *htmlentity;
     const char *charstring;
@@ -145,3 +148,5 @@ static const struct {
     {"&thorn;", "þ"},
     {"&yuml;", "ÿ"}
 };
+
+#endif

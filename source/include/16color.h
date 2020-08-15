@@ -1,3 +1,6 @@
+#ifndef COLOR16
+#define COLOR16
+
 #define CBLACK "\x1b[30m"
 #define CRED "\x1b[31m"
 #define CGREEN "\x1b[32m"
@@ -36,3 +39,5 @@ char *CCOLORS[] = {
     CCYANB,
     CWHITEB
 };
+
+#endif

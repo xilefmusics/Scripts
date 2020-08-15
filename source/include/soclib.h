@@ -1,3 +1,6 @@
+#ifndef SOCLIB
+#define SOCLIB
+
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -238,3 +241,5 @@ int tcp_request(int socket, uint16_t port, uint32_t ipv4, char* out_buf, int out
     return -3;
   return in_len;
 }
+
+#endif

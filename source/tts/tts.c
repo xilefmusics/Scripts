@@ -9,7 +9,7 @@ int port = 8080;
 char *msg = "Hello from Server";
 char buffer[BUFLEN];
 
-int http_handler(char *in_buf, char **out_buf, int in_len) {
+int handler(char *in_buf, char **out_buf, int in_len) {
   printf("Received %d bytes\n%s\n", in_len, in_buf);
   printf("Send %d bytes\n%s\n", strlen(msg)+1, msg);
   *out_buf = msg;
@@ -21,5 +21,5 @@ int main(int argc, char *argv[]) {
     port = atoi(argv[1]);
   if (argc > 2)
     msg = argv[2];
-  return tcp_server(port, buffer, BUFLEN, http_handler, 5);
+  return tcp_server(port, buffer, BUFLEN, handler, 5);
 }
