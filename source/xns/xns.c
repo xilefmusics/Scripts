@@ -21,7 +21,6 @@ struct recordA {
 int num_recordsA = 1;
 
 char domain[MAX_DOMAIN_LENGTH];
-int forward_socket;
 
 char *parse_domain(char *buf_ptr) {
   char * domain_ptr = domain;
@@ -48,7 +47,7 @@ int lookupA(char *domain, uint32_t *ipv4, uint16_t *ttl) {
 
 char tmp_buf[BUFLEN];
 int forward(char *in_buf, int in_len) {
-    int len = udp_request(forward_socket, 53, FORWARD, in_buf, in_len, tmp_buf, BUFLEN);
+    int len = udp_request(53, FORWARD, in_buf, in_len, tmp_buf, BUFLEN, 500000);
     if (len > 0) {
       memcpy(in_buf, tmp_buf, len);
       return len;
@@ -100,13 +99,5 @@ int dns_handler(char *in_buf, char **out_buf, int in_len) {
 
 int main(int argc, char *argv[]) {
   char buf[BUFLEN];
-	if ((forward_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-    return -1;
-  struct timeval tv;
-  tv.tv_sec = 0;
-  tv.tv_usec = 100000;
-  if (setsockopt(forward_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
-    return 1;
   return udp_server(PORT, buf, BUFLEN, dns_handler);
-  close(forward_socket);
 }

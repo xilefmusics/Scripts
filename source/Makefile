@@ -11,16 +11,16 @@ all:
 	cd utc && make
 
 install:
-	cd nohtml && make install
-	cd cptt && make install
-	cd xib && make install
-	cd xifi && make install
-	cd wttcp && make install
-	cd xns && make install
-	cd tts && make install
-	cd ttc && make install
-	cd uts && make install
-	cd utc && make install
+	cd nohtml && make install || echo "could not install"
+	cd cptt && make install || echo "could not install"
+	cd xib && make install || echo "could not install"
+	cd xifi && make install || echo "could not install"
+	cd wttcp && make install || echo "could not install"
+	cd xns && make install || echo "could not install"
+	cd tts && make install || echo "could not install"
+	cd ttc && make install || echo "could not install"
+	cd uts && make install || echo "could not install"
+	cd utc && make install || echo "could not install"
 
 clean:
 	cd nohtml && make clean

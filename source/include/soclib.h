@@ -95,11 +95,15 @@ int udp_server(uint16_t port, char* in_buf, int in_buf_len, int (*handler)(char 
   si_me.sin_family = AF_INET; // IPv4
   si_me.sin_addr.s_addr = htonl(INADDR_ANY); // Ip-Adresse
   si_me.sin_port = htons(port); // Port
-  if(bind(s, (struct sockaddr*)&si_me, sizeof(si_me)) == -1)
+  if(bind(s, (struct sockaddr*)&si_me, sizeof(si_me)) == -1) {
+    close(s);
     return -2;
+  }
   while (1) {
-    if ((len = recvfrom(s, in_buf, in_buf_len, 0, (struct sockaddr *) &si_other, &slen)) == -1)
+    if ((len = recvfrom(s, in_buf, in_buf_len, 0, (struct sockaddr *) &si_other, &slen)) == -1) {
+      close(s);
       return -3;
+    }
     out_buf = NULL;
     len = handler(in_buf, &out_buf, len);
     if (!out_buf)
@@ -108,8 +112,10 @@ int udp_server(uint16_t port, char* in_buf, int in_buf_len, int (*handler)(char 
       continue;
     if (len < 0)
       break;
-    if (sendto(s, out_buf, len, 0, (struct sockaddr*) &si_other, slen) == -1)
+    if (sendto(s, out_buf, len, 0, (struct sockaddr*) &si_other, slen) == -1) {
+      close(s);
       return -4;
+    }
   }
   close(s);
   return 0;
@@ -128,19 +134,28 @@ int udp_server(uint16_t port, char* in_buf, int in_buf_len, int (*handler)(char 
  *  - int in_buf_len
  *
  *  returns:
+ *      -1: error while creating socket
  *      -3: error while receiving response
  *      -4: error while sending request
+ *      -8: error while setting timeout
  *    else: len of response
  */
-int udp_request(int socket, uint16_t port, uint32_t ipv4, char* out_buf, int out_len, char* in_buf, int in_buf_len) {
+int udp_request(uint16_t port, uint32_t ipv4, char* out_buf, int out_len, char* in_buf, int in_buf_len, int timeout) {
   struct sockaddr_in server_addr;
-  int in_len, slen = sizeof(server_addr);
+  struct timeval tv;
+  int s, in_len, slen = sizeof(server_addr);
+	if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+    return -1;
+  tv.tv_sec = 0;
+  tv.tv_usec = timeout;
+  if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
+    return -8;
   server_addr.sin_family = AF_INET; // IPv4
   server_addr.sin_addr.s_addr = htonl(ipv4); // Ip-Adresse
   server_addr.sin_port = htons(port); // Port
-  if (sendto(socket, out_buf, out_len, MSG_CONFIRM, (struct sockaddr*) &server_addr, slen) == -1)
+  if (sendto(s, out_buf, out_len, MSG_CONFIRM, (struct sockaddr*) &server_addr, slen) == -1)
     return -4;
-  if ((in_len = recvfrom(socket, in_buf, in_buf_len, MSG_WAITALL, (struct sockaddr *) &server_addr, &slen)) == -1)
+  if ((in_len = recvfrom(s, in_buf, in_buf_len, MSG_WAITALL, (struct sockaddr *) &server_addr, &slen)) == -1)
     return -3;
   return in_len;
 }
