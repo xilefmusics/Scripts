@@ -31,7 +31,7 @@ int get_number(const char const *path, const char const *name) {
         fclose(fp);
         return result;
     }
-    return 0;
+    return -1;
 }
 
 bool set_brightness(const char const *path, int brightness) {
@@ -66,14 +66,14 @@ int main(int argc, char *argv[]) {
 
     // get max_brightness
     int max_brightness = get_number(path, "max_brightness");
-    if (!max_brightness) {
+    if (max_brightness == -1) {
         fprintf(stderr, "can't load max_brightness\n");
         return 1;
     }
 
     // get actual_brightness
     int actual_brightness = get_number(path, "actual_brightness");
-    if (!actual_brightness) {
+    if (actual_brightness == -1) {
         fprintf(stderr, "can't load actual_brightness\n");
         return 1;
     }
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
     /* int current_percentage = (int)(100*actual_brightness/actual_brightness); */
 
     // calculate percentage with transformation
-    int current_percentage = 1;
+    int current_percentage = 0;
     while ((int)(((double)current_percentage*current_percentage)/10000*max_brightness) < actual_brightness) {
         current_percentage++;
     }
