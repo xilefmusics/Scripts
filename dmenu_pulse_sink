@@ -1,0 +1,4 @@
+#!/bin/bash
+sink=$(pactl list short sinks | awk '{print $2}' | dmenu)
+number=$(pactl list short sinks | grep "$sink" | awk '{print $1}')
+pactl set-default-sink $number

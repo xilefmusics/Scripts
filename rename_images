@@ -1,0 +1,9 @@
+#!/bin/python
+import sys
+import os
+
+new_name = sys.argv[1]
+old_names = sys.argv[2:]
+
+for i in range(len(old_names)):
+    os.system('mv ' + old_names[i] + ' ' + new_name +  '_' + '{0:0=3d}'.format(i+1) + '.JPG')
