@@ -1,0 +1,4 @@
+#!/bin/bash
+source=$(pactl list short sources | awk '{print $2}' | dmenu)
+number=$(pactl list short sources | grep "$source" | awk '{print $1}')
+pactl set-default-source $number
