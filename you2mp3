@@ -1,0 +1,200 @@
+#!/bin/python
+import os
+import re
+import sys
+import getopt
+import getpass
+
+glob = {
+        'url': None,
+        'interpret': None,
+        'album': None,
+        'year': None,
+        'rmbrk': True,
+        'rmft': True,
+        'here': False,
+        'mode': 'you2mp3',
+        'dir': None,
+        }
+
+title_substring_removers = [
+        '(Audio)',
+        '[Audio]',
+        ]
+
+dependencys = {
+        'you2mp3': ['youtube-dl', 'python-mutagen'],
+        'install': None,
+        'chtitle': ['python-mutagen'],
+        }
+
+def download(url):
+    return os.popen('youtube-dl -f bestaudio --extract-audio --audio-format mp3 --audio-quality 0 \'{}\' | grep Destination | grep ffmpeg | cut -d " " -f 3-'.format(url)).readlines()
+
+def interpret_is_contained(string):
+    if not glob['interpret']:
+        return False
+    i = glob['interpret'].lower()
+    s = string.lower()
+    return i in s
+
+def format_songs(songs):
+    track = 0
+    for song, i in zip(songs, range(0, len(songs))):
+        parts = song.split('-')[:-1]
+        if len(parts) == 1:
+            title = parts[0]
+        else:
+            title = ''
+            for part in parts:
+                if not interpret_is_contained(part):
+                    if title == '':
+                        title += part
+                    else:
+                        title += ('-' + part)
+
+        for rm in title_substring_removers:
+            title=title.replace(rm, '')
+        if glob['rmbrk']:
+            title = re.sub(r'\([^)]*\)', '', title)
+        if glob['rmft']:
+            title = title[:title.find('ft.')]
+        while title[0] == ' ':
+            title = title[1:]
+        while title[-1] == ' ':
+            title = title[:-1]
+
+        track += 1
+
+        songs[i] = {
+                'raw_file': song[:-1],
+                'new_file': title+'.mp3',
+                'title': title,
+                'track': track
+                }
+    return songs
+
+def rename_songs_to_title(songs):
+    for song in songs:
+        os.rename(song['raw_file'], song['new_file'])
+
+def tag_songs(songs):
+    for song in songs:
+        if 'title' in song:
+            os.system('mid3v2 -t "{}" "{}"'.format(song['title'], song['new_file']))
+        if 'track' in song:
+            os.system('mid3v2 -T "{}" "{}"'.format(song['track'], song['new_file']))
+        if glob['interpret']:
+            os.system('mid3v2 -a "{}" "{}"'.format(glob['interpret'], song['new_file']))
+        if glob['album']:
+            os.system('mid3v2 -A "{}" "{}"'.format(glob['album'], song['new_file']))
+        if glob['year']:
+            os.system('mid3v2 -y "{}" "{}"'.format(glob['year'], song['new_file']))
+
+def help():
+    print('This is a help page')
+
+def interactive():
+    if not glob['url'] and glob['mode'] == 'you2mp3':
+        i = input('url: ')
+        if len(i) > 0:
+            glob['url'] = i
+    if not glob['interpret']:
+        i = input('interpret: ')
+        if len(i) > 0:
+            glob['interpret'] = i
+    if not glob['album']:
+        i = input('album: ')
+        if len(i) > 0:
+            glob['album'] = i
+    if not glob['year']:
+        i = input('year: ')
+        if len(i) > 0:
+            glob['year'] = i
+
+def parse_arguments(argv):
+    try:
+        opts, args = getopt.getopt(argv[1:], 'u:i:a:y:m:d:rRhIH')
+    except getopt.GetoptError:
+        help()
+        sys.exit(1)
+
+    for opt, arg in opts:
+        if opt == '-u':
+            glob['url'] = arg
+        if opt == '-i':
+            glob['interpret'] = arg
+        if opt == '-a':
+            glob['album'] = arg
+        if opt == '-y':
+            glob['year'] = arg
+        if opt == '-m':
+            glob['mode'] = arg
+        if opt == '-d':
+            glob['dir'] = os.path.abspath(arg)
+            if not glob['dir'][-1] == '/':
+                glob['dir'] += '/'
+        if opt == '-r':
+            glob['rmbrk'] = False
+        if opt == '-R':
+            glob['rmft'] = False
+        if opt == '-I':
+            interactive()
+        if opt == '-H':
+            glob['here'] = True
+        if opt == '-h':
+            help()
+            sys.exit(0)
+
+def find_dir():
+    for m in ('Musik', 'Music'):
+        d = '/home/{}/{}/'.format(getpass.getuser(), m)
+        if os.path.exists(d):
+            return d
+    return os.path.abspath('./')
+
+def change_folder():
+    if glob['interpret']:
+        glob['dir'] += (glob['interpret'] + '/')
+        if not os.path.exists(glob['dir']):
+            os.mkdir(glob['dir'])
+    if glob['album']:
+        glob['dir'] += (glob['album'] + '/')
+        if not os.path.exists(glob['dir']):
+            os.mkdir(glob['dir'])
+    os.chdir(glob['dir'])
+
+def check_dependencys(dependencys):
+    if not dependencys:
+        return
+    for dependency in dependencys:
+        if len(os.popen('pacman -Qi {} 2> /dev/null'.format(dependency)).readlines()) == 0:
+            print('ERROR: Missing dependency {} for mode {} (try: sudo yoump3 -m install)'.format(dependency, glob['mode']))
+            sys.exit(1)
+
+def chtitle():
+    for f in os.listdir(glob['dir']):
+        os.system('mid3v2 -t "{}" "{}"'.format(f.split('.')[0], f))
+
+def main(argv):
+    parse_arguments(argv)
+    if not glob['dir']:
+        glob['dir'] = find_dir()
+    if not glob['here']:
+        change_folder()
+    check_dependencys(dependencys[glob['mode']])
+    if glob['mode'] == 'you2mp3':
+        if not glob['url']:
+            print('ERROR: Specify url using -u for mode you2mp3 (run using -h option for more information)')
+            sys.exit(1)
+        lines = download(glob['url'])
+        songs = format_songs(lines)
+        rename_songs_to_title(songs)
+        tag_songs(songs)
+    elif glob['mode'] == 'install':
+        os.system('pacman -S youtube-dl python-mutagen')
+    elif glob['mode'] == 'chtitle':
+        chtitle()
+
+if __name__ == '__main__':
+    main(sys.argv)
