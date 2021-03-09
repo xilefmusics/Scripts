@@ -11,7 +11,7 @@ elif [ "$extension" = "png" ] || [ "$extension" = "JPG" ] || [ "$extension" = "j
     feh "$file" &
 elif [ "$extension" = "mp3" ]; then
     vlc "$file" &
-elif [ "$extension" = "mp4" ] || [ "$extension" = "m4v" ]; then
+elif [ "$extension" = "mp4" ] || [ "$extension" = "m4v" ] || [ "$extension" = "avi" ] || [ "$extension" = "flv" ] || [ "$extension" = "mpg" ] || [ "$extension" = "mkv" ]; then
     mpv "$file" &
 elif [ "$extension" = "odt" ] || [ "$extension" = "ods" ] || [ "$extension" = "odp" ] || [ "$extension" = "docx" ] || [ "$extension" = "xlsx" ] || [ "$extension" = "pptx" ]; then
     libreoffice --norestore "$file" &

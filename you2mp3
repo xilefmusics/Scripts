@@ -20,6 +20,9 @@ glob = {
 title_substring_removers = [
         '(Audio)',
         '[Audio]',
+        '(Official Video)',
+        '(Official Lyric Video)',
+        '[Official Lyric Video]',
         ]
 
 dependencys = {
@@ -50,8 +53,6 @@ def format_songs(songs):
                 if not interpret_is_contained(part):
                     if title == '':
                         title += part
-                    else:
-                        title += ('-' + part)
 
         for rm in title_substring_removers:
             title=title.replace(rm, '')
