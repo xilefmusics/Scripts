@@ -57,7 +57,7 @@ def format_songs(songs):
         for rm in title_substring_removers:
             title=title.replace(rm, '')
         if glob['rmbrk']:
-            title = re.sub(r'\([^)]*\)', '', title)
+            title = re.sub("[\(\[].*?[\)\]]", "", title)
         if glob['rmft']:
             title = title[:title.find('ft.')]
         while title[0] == ' ':
