@@ -1,0 +1,85 @@
+#!/bin/sh
+
+# settings
+dvd=/dev/$(lsblk | grep rom | awk '{print $1}')
+folder=./tmp
+
+install() {
+  pacman -S dvdbackup ffmpeg libdvdcss lsdvd
+}
+
+dvd2vob() {
+  dvdbackup -i $dvd -o $folder -F # copy VOBs from DVD to disk and delete protection
+  for f in $folder/*; do
+    cd "$f/VIDEO_TS" &> /dev/null
+    rm *0.VOB &> /dev/null # delete menu
+    cat $(ls . | grep .VOB) > ../../../film.VOB # concatenate VOBs
+    cd ../../..
+  done
+}
+
+delete_folder() {
+  if [ -d "$folder" ]; then
+    rm -rf "$folder"
+  fi
+}
+
+create_folder() {
+  delete_folder
+  mkdir "$folder"
+}
+
+check_dvd() {
+  if [ $dvd = /dev/ ]; then
+    echo "ERROR: No dvd drive found"
+    exit 1
+  fi
+}
+
+check_rights() {
+  if ! [ -w . ]; then
+	  echo "ERROR: No write permissions (try: sudo ./rip owndirectory)"
+    exit 1
+  fi
+}
+
+check_dependencys() {
+  dependencys=(dvdbackup libdvdcss ffmpeg lsdvd)
+  for dependency in ${dependencys[@]}; do
+    result=$(pacman -Qi $dependency 2> /dev/null | head -n 1 | awk '{print $1}' )
+    if [ "$result" = "" ]; then
+      echo "ERROR: Missing dependencys (try: sudo ./rip install)"
+      exit 1
+    fi
+  done
+}
+
+vob2mp4() {
+  ffmpeg -i "$1" -map 0:v -map 0:a -c:v libx265 -preset medium -crf 30 -c:a aac "$2" # encode film
+}
+
+# default action
+if [ "$1" = "" ]; then
+  action=dvd2vob
+else
+  action=$1
+fi
+
+# action handler
+if [ $action = install ]; then
+  install
+elif [ $action = dvd2vob ]; then
+  check_dependencys
+  check_rights
+  check_dvd
+  create_folder
+  dvd2vob
+  delete_folder
+  echo "FINISH: Your film is stored in film.VOB - Please rename it"
+elif [ $action = owndirectory ]; then
+  chown -R $SUDO_USER .
+elif [ $action = vob2mp4 ]; then
+  check_dependencys
+  vob2mp4 $2 $3
+fi
+

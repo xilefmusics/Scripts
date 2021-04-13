@@ -9,7 +9,7 @@ elif [ "$extension" = "mscz" ]; then
     musescore "$file" &
 elif [ "$extension" = "png" ] || [ "$extension" = "JPG" ] || [ "$extension" = "jpg" ] || [ "$extension" = "jpeg" ] || [ "$extension" = "ppm" ] || [ "$extension" = "pgm" ]; then
     feh "$file" &
-elif [ "$extension" = "mp3" ]; then
+elif [ "$extension" = "mp3" ] || [ "$extension" = "VOB" ]; then
     vlc "$file" &
 elif [ "$extension" = "mp4" ] || [ "$extension" = "m4v" ] || [ "$extension" = "avi" ] || [ "$extension" = "flv" ] || [ "$extension" = "mpg" ] || [ "$extension" = "mkv" ]; then
     mpv "$file" &
