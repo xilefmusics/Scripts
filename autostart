@@ -1,0 +1,25 @@
+#!/bin/bash
+
+mon1=eDP1
+mon2=DP2-2
+mon3=DP2-3
+if [[ $(xrandr -q | grep $mon2) = *connected* && $(xrandr -q | grep $mon3) = *connected* ]]; then
+  xrandr \
+    --output $mon2 --primary --mode 1920x1080 --pos 0x0 --rotate normal \
+    --output $mon1 --off \
+    --output $mon3 --off
+  xrandr \
+    --output $mon1 --primary --mode 1920x1080 --pos 0x0 --rotate normal \
+    --output $mon2 --mode 1920x1080 --pos 1920x0 --rotate normal \
+    --output $mon3 --mode 1280x1024 --pos 3840x0 --rotate normal
+  setxkbmap us
+  xmodmap $HOME/.Xmodmap
+else
+  xrandr \
+    --output $mon1 --primary --mode 1920x1080 --pos 0x0 --rotate normal \
+      --output $mon2 --off \
+    --output $mon3 --off
+  setxkbmap de
+fi
+
+feh --bg-scale /home/xilef/Images/0000_Wallpaper/wallpaper1.jpg &
