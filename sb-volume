@@ -1,0 +1,6 @@
+#!/bin/sh
+[ $(pamixer --get-mute) = true ] && echo MUTE && exit
+
+volume="$(pamixer --get-volume)"
+
+echo $volume

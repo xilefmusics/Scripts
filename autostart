@@ -23,3 +23,5 @@ else
 fi
 
 feh --bg-scale /home/xilef/Images/0000_Wallpaper/wallpaper1.jpg &
+compton &
+dwmblocks &
