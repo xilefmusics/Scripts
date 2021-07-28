@@ -1,0 +1,80 @@
+#!/usr/bin/python3
+import csv
+import click
+import os
+import sys
+
+NEXT_KEY = ' '
+CORRECT_KEY = 'j'
+WRONG_KEY = 'f'
+
+def read_file(path):
+    with open(path, 'r') as f:
+        return [row for row in csv.reader(f)]
+
+def csv2objects(vocs):
+    def parse(voc):
+        return {'word': voc[0], 'translation': voc[1], 'extra': None if len(voc) < 3 else voc[2], 'total_runs': 0 if len(voc) < 4 else int(voc[3]), 'correct_runs_in_row': 0 if len(voc) < 5 else int(voc[4])}
+    return [parse(voc) for voc in vocs]
+
+def objects2csv(vocs):
+    def parse(voc):
+        return f"{voc['word']},{voc['translation']},{voc['extra']},{voc['total_runs']},{voc['correct_runs_in_row']}\n"
+    return [parse(voc) for voc in vocs]
+
+def write_file(path, vocs):
+    with open(path, 'w') as f:
+        f.writelines(vocs)
+
+def get_path():
+    if len(sys.argv) == 1:
+        print('ERROR: No vocable pool given')
+        sys.exit(1)
+    return sys.argv[1]
+
+def check_keys(keys):
+    while True:
+        c = click.getchar()
+        for key in keys:
+            if key == c:
+                return c
+
+def my_print(s):
+    rows, columns = os.popen('stty size', 'r').read().split()
+    s = str(s)
+    s = s + (' ' * (int(columns)-len(s)))
+    print(s, end='\r')
+
+def one_voc(voc):
+    my_print(f"QUESTION: {voc['word']}")
+    check_keys(NEXT_KEY)
+    my_print(f"ANSWER: {voc['translation']} ({voc['extra']})")
+    return check_keys(CORRECT_KEY+WRONG_KEY) == CORRECT_KEY
+
+def run(vocs):
+    correct = 0
+    wrong = 0
+    for voc in vocs:
+        voc['total_runs'] += 1
+        if one_voc(voc):
+            correct += 1
+            voc['correct_runs_in_row'] += 1
+        else:
+            voc['correct_runs_in_row'] = 0
+            wrong += 1
+        my_print('Do you want to continue?')
+        if check_keys(CORRECT_KEY+WRONG_KEY) == WRONG_KEY:
+            break
+    print(f'You have {correct} out of {correct+wrong} correct which is {correct/(1 if (correct+wrong) == 0 else(correct+wrong))*100}%')
+
+
+
+
+path = get_path()
+vocs = read_file(path)
+vocs = csv2objects(vocs)
+run(vocs)
+vocs = objects2csv(vocs)
+write_file(path, vocs)
+
+
