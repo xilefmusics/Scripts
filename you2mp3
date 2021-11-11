@@ -15,23 +15,23 @@ class Downloader:
         self.year = year
 
         self.opts = {
-            'format': 'bestaudio/best',       
+            'format': 'bestaudio/best',
             'outtmpl': '%(title)s.%(ext)s',
-            'noplaylist' : False,        
-            'progress_hooks': [self.hook],  
+            'noplaylist' : False,
+            'progress_hooks': [self.hook],
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
-                'preferredquality': '192', 
+                'preferredquality': '192',
             }]
         }
-        self.in_words = ['Official', 'Video', 'Lyric']
+        self.in_words = ['Official', 'Video', 'Lyric', 'Audio']
         self.songs = []
 
         self.change_folder()
         self.start_download()
         self.rename_and_tag()
-    
+
     def rename_and_tag(self):
         for idx, song in enumerate(self.songs):
             os.rename(song['old_filename'], song['new_filename'])
@@ -39,6 +39,7 @@ class Downloader:
             tags['TIT2'] = TIT2(encoding=3, text=song['title'])
             tags['TALB'] = TALB(encoding=3, text=self.album)
             tags['TPE1'] = TPE1(encoding=3, text=self.artist)
+            tags['TPE2'] = TPE2(encoding=3, text=self.artist)
             tags['TDRC'] = TDRC(encoding=3, text=self.year)
             tags['TRCK'] = TRCK(encoding=3, text=str(idx+1))
             tags.save(song['new_filename'])
@@ -67,7 +68,7 @@ class Downloader:
             new_filename = title + '.mp3'
             old_filename = d['filename'][:d['filename'].rfind('.')] + '.mp3'
             self.songs.append({'old_filename': old_filename, 'new_filename': new_filename, 'title': title})
-    
+
     def start_download(self):
         with youtube_dl.YoutubeDL(self.opts) as ydl:
             ydl.download([self.url])
@@ -133,7 +134,7 @@ def get_args():
         elif opt == '-I':
             res = interactive(res)
     return res
-    
+
 if __name__ == '__main__':
     args = get_args()
     Downloader(url=args['url'], album=args['album'], artist=args['artist'], year=args['year'])
